@@ -102,3 +102,29 @@ def test_raises_without_credentials():
     with pytest.raises(TwilioError) as exc:
         provider.send_voice_torpedo("5511987654321", "oi")
     assert "credenciais" in str(exc.value).lower()
+
+
+def test_call_status_consulta_a_chamada():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path.endswith("/Calls/CA123.json")
+        return httpx.Response(200, json={"status": "completed", "duration": "12"})
+
+    http = httpx.Client(transport=httpx.MockTransport(handler))
+    provider = TwilioProvider(make_settings(), http=http)
+    assert provider.call_status("CA123") == {
+        "status": "completed", "duration": 12, "answered": True}
+
+
+def test_call_status_marca_nao_atendida():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"status": "no-answer", "duration": "0"})
+
+    http = httpx.Client(transport=httpx.MockTransport(handler))
+    provider = TwilioProvider(make_settings(), http=http)
+    resultado = provider.call_status("CA123")
+    assert resultado["answered"] is False and resultado["status"] == "no-answer"
+
+
+def test_call_status_em_dry_run_nao_chama_a_rede():
+    provider = TwilioProvider(make_settings(dry_run=True))
+    assert provider.call_status("CA123") == {"status": "dry_run", "duration": None, "answered": None}

@@ -2,8 +2,11 @@ import base64
 import hashlib
 import hmac
 import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Request
+
+from app.callbacks import notify_system
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +40,21 @@ async def twilio_whatsapp_webhook(request: Request) -> dict:
             return {"status": "ignored"}
         reply = request.app.state.engine.handle_message(phone, text)
         request.app.state.evolution.send_text(phone, reply)
+        _avisar_sistema(settings, phone, text, reply)
         return {"status": "replied"}
     except Exception:
         logger.exception("erro ao processar webhook do Twilio; form=%r", form)
         return {"status": "error-logged"}
+
+
+def _avisar_sistema(settings, phone: str, message: str, reply: str) -> None:
+    """Notifica o sistema do cliente; nunca atrapalha a resposta ao cliente."""
+    try:
+        notify_system(settings, {
+            "phone": phone,
+            "message": message,
+            "reply": reply,
+            "received_at": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception:
+        logger.exception("falha ao notificar o sistema do cliente")

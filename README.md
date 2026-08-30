@@ -92,10 +92,53 @@ cru e responde 200 — ajuste o parser em `app/routes/webhook.py` com base no lo
 
 ## Fase 4 — integrar o seu sistema
 
-Seu sistema chama `POST /api/notifications` com o header `X-API-Key` (valor de
-`API_KEY` do `.env`) e o JSON `{phone, voice_message, context}`. Respostas:
-`201` disparado, `401` chave errada, `422` telefone/payload inválido, `502`
-falha na Nvoip (pode reenviar).
+Todos os endpoints abaixo exigem o cabeçalho `X-API-Key` com o valor de
+`API_KEY` do `.env`. A documentação interativa fica em `/docs`.
+
+### Disparar um aviso
+
+    POST /api/notifications
+    {"phone": "5511987654321",
+     "voice_message": "Sua entrega chega hoje às 15h. Dúvidas, chame no WhatsApp.",
+     "context": "Pedido 900, transportadora XYZ, motorista Carlos"}
+
+`voice_message` é o que a ligação fala. `context` não é falado: é o que o bot
+usa para responder quando o cliente escrever depois.
+
+Respostas: `201` disparado (devolve o `id`), `401` chave inválida, `422`
+telefone fora do padrão brasileiro, `502` a operadora recusou a ligação.
+
+### Consultar o desfecho da ligação
+
+    GET /api/notifications/{id}
+
+Devolve o aviso e, em `call`, o desfecho consultado na operadora no momento da
+chamada — `status` (`completed`, `no-answer`, `busy`, `failed`), `duration` em
+segundos e `answered`. Como a operadora só sabe o resultado depois, consulte
+alguns segundos após o disparo.
+
+### Ler a conversa de um cliente
+
+    GET /api/conversations/{phone}?limit=50
+
+Mensagens em ordem cronológica, com `direction` (`in` do cliente, `out` do
+bot). O telefone pode ser informado com ou sem o nono dígito.
+
+### Receber um aviso quando o cliente responder
+
+Preencha `CALLBACK_URL` e `CALLBACK_SECRET` no `.env`. A cada mensagem
+recebida, o serviço faz um `POST` para essa URL:
+
+    {"phone": "5511987654321", "message": "que horas chega?",
+     "reply": "Sua entrega chega às 15h.", "received_at": "2026-08-30T00:13:52+00:00"}
+
+O corpo vai assinado em HMAC-SHA256 no cabeçalho `X-Signature`. Confira assim:
+
+    esperado = hmac.new(CALLBACK_SECRET.encode(), corpo_cru, hashlib.sha256).hexdigest()
+
+Se o seu sistema estiver fora do ar, a falha é registrada no log e o cliente
+recebe a resposta do bot normalmente — o callback nunca interrompe o
+atendimento.
 
 ## Operação
 

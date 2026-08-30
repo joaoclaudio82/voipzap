@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     twilio_whatsapp_from: str = "+14155238886"
     voice_provider: str = "twilio"
     whatsapp_provider: str = "evolution"
+    callback_url: str = ""
+    callback_secret: str = ""
     nvoip_caller: str = ""
     nvoip_base_url: str = "https://api.nvoip.com.br"
     evolution_url: str = "http://localhost:8080"

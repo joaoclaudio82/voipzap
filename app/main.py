@@ -11,7 +11,7 @@ from app.providers.evolution import EvolutionProvider
 from app.providers.nvoip import NvoipProvider
 from app.providers.twilio import TwilioProvider
 from app.providers.twilio_whatsapp import TwilioWhatsAppProvider
-from app.routes import dev, notifications, twilio_webhook, webhook
+from app.routes import dev, notifications, queries, twilio_webhook, webhook
 
 logging.basicConfig(level=logging.INFO)
 
@@ -49,6 +49,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.engine = BotEngine(settings, db, client=_make_llm_client(settings))
 
     app.include_router(notifications.router)
+    app.include_router(queries.router)
     app.include_router(webhook.router)
     app.include_router(twilio_webhook.router)
     if settings.dev_mode:

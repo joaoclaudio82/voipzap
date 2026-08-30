@@ -1,9 +1,12 @@
 import json
 import hmac
 import logging
+from datetime import datetime, timezone
 from dataclasses import dataclass
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+
+from app.callbacks import notify_system
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +70,21 @@ def whatsapp_webhook(
             return {"status": "replied"}
         reply = request.app.state.engine.handle_message(inbound.phone, inbound.text)
         request.app.state.evolution.send_text(inbound.phone, reply)
+        _avisar_sistema(settings, inbound.phone, inbound.text, reply)
         return {"status": "replied"}
     except Exception:
         logger.exception("erro ao processar webhook; body=%r", body[:500])
         return {"status": "error-logged"}
+
+
+def _avisar_sistema(settings, phone: str, message: str, reply: str) -> None:
+    """Notifica o sistema do cliente; nunca atrapalha a resposta ao cliente."""
+    try:
+        notify_system(settings, {
+            "phone": phone,
+            "message": message,
+            "reply": reply,
+            "received_at": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception:
+        logger.exception("falha ao notificar o sistema do cliente")

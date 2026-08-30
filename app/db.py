@@ -46,6 +46,13 @@ class Database:
             )
             return cur.lastrowid
 
+    def notification(self, notification_id: int) -> dict | None:
+        with contextlib.closing(self._connect()) as conn, conn:
+            row = conn.execute(
+                "SELECT * FROM notifications WHERE id = ?", (notification_id,)
+            ).fetchone()
+        return dict(row) if row else None
+
     def recent_notifications(self, phone: str, limit: int = 3) -> list[dict]:
         # Aceita o número com e sem o nono dígito: o WhatsApp entrega os dois.
         formatos = variants(phone)

@@ -4,3 +4,6 @@ __pycache__/
 .env
 data/
 .pytest_cache/
+
+# Arquivos de sessão de ferramentas locais
+.omc/

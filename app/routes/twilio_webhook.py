@@ -39,7 +39,7 @@ async def twilio_whatsapp_webhook(request: Request) -> dict:
         if not phone or not text:
             return {"status": "ignored"}
         reply = request.app.state.engine.handle_message(phone, text)
-        request.app.state.evolution.send_text(phone, reply)
+        request.app.state.whatsapp_twilio.send_text(phone, reply)
         _avisar_sistema(settings, phone, text, reply)
         return {"status": "replied"}
     except Exception:

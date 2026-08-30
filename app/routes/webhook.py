@@ -66,10 +66,10 @@ def whatsapp_webhook(
                 logger.warning("payload não reconhecido; body=%r", body[:500])
             return {"status": "ignored"}
         if inbound.text is None:
-            request.app.state.evolution.send_text(inbound.phone, NON_TEXT_REPLY)
+            request.app.state.whatsapp_evolution.send_text(inbound.phone, NON_TEXT_REPLY)
             return {"status": "replied"}
         reply = request.app.state.engine.handle_message(inbound.phone, inbound.text)
-        request.app.state.evolution.send_text(inbound.phone, reply)
+        request.app.state.whatsapp_evolution.send_text(inbound.phone, reply)
         _avisar_sistema(settings, inbound.phone, inbound.text, reply)
         return {"status": "replied"}
     except Exception:

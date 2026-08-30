@@ -31,7 +31,7 @@ def _make_voice_provider(settings: Settings):
 
 
 def _make_whatsapp_provider(settings: Settings):
-    """Transporte de WhatsApp: twilio (oficial) ou evolution (não oficial)."""
+    """Provedor padrão, usado por quem não conhece o canal de origem."""
     if settings.whatsapp_provider == "twilio":
         return TwilioWhatsAppProvider(settings)
     return EvolutionProvider(settings)
@@ -45,6 +45,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.db = db
     app.state.nvoip = _make_voice_provider(settings)
+    # Cada canal responde pelo seu próprio transporte: a resposta precisa
+    # voltar por onde a mensagem entrou, não pelo provedor configurado.
+    app.state.whatsapp_twilio = TwilioWhatsAppProvider(settings)
+    app.state.whatsapp_evolution = EvolutionProvider(settings)
     app.state.evolution = _make_whatsapp_provider(settings)
     app.state.engine = BotEngine(settings, db, client=_make_llm_client(settings))
 

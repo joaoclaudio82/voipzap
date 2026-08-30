@@ -27,3 +27,13 @@ def test_voice_provider_can_be_nvoip(settings_test):
     settings_test.voice_provider = "nvoip"
     application = create_app(settings_test)
     assert isinstance(application.state.nvoip, NvoipProvider)
+
+
+def test_cada_canal_tem_seu_proprio_provedor(settings_test):
+    """Twilio e Evolution ficam ativos em paralelo, um por canal."""
+    from app.providers.evolution import EvolutionProvider
+    from app.providers.twilio_whatsapp import TwilioWhatsAppProvider
+
+    application = create_app(settings_test)
+    assert isinstance(application.state.whatsapp_twilio, TwilioWhatsAppProvider)
+    assert isinstance(application.state.whatsapp_evolution, EvolutionProvider)

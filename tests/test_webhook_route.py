@@ -75,7 +75,7 @@ def test_webhook_replies_via_evolution(client):
             sent.append((number, text))
             return {"dry_run": True}
 
-    client.app.state.evolution = SpyEvolution()
+    client.app.state.whatsapp_evolution = SpyEvolution()
     response = client.post("/webhooks/whatsapp?token=test-webhook", json=FLAT)
     assert response.status_code == 200
     assert response.json() == {"status": "replied"}
@@ -98,7 +98,7 @@ def test_webhook_media_gets_fixed_reply(client):
             sent.append((number, text))
             return {"dry_run": True}
 
-    client.app.state.evolution = SpyEvolution()
+    client.app.state.whatsapp_evolution = SpyEvolution()
     payload = {"event": "messages.upsert", "data": {
         "key": {"remoteJid": "5532988887777@s.whatsapp.net", "fromMe": False},
         "message": {"imageMessage": {"caption": ""}}}}
@@ -112,7 +112,7 @@ def test_webhook_never_500s(client):
         def send_text(self, number, text):
             raise RuntimeError("evolution fora do ar")
 
-    client.app.state.evolution = ExplodingEvolution()
+    client.app.state.whatsapp_evolution = ExplodingEvolution()
     response = client.post("/webhooks/whatsapp?token=test-webhook", json=FLAT)
     assert response.status_code == 200
     assert response.json() == {"status": "error-logged"}
@@ -147,3 +147,22 @@ def test_webhook_logs_unrecognized_upsert(client, caplog):
     assert response.status_code == 200
     assert response.json() == {"status": "ignored"}
     assert any("payload não reconhecido" in record.getMessage() for record in caplog.records)
+
+
+def test_responde_pela_evolution_mesmo_com_twilio_ativo(client):
+    twilio_enviou, evolution_enviou = [], []
+
+    class Spy:
+        def __init__(self, destino):
+            self.destino = destino
+
+        def send_text(self, number, text):
+            self.destino.append((number, text))
+            return {"dry_run": True}
+
+    client.app.state.whatsapp_twilio = Spy(twilio_enviou)
+    client.app.state.whatsapp_evolution = Spy(evolution_enviou)
+    client.post("/webhooks/whatsapp?token=test-webhook", json=FLAT)
+
+    assert len(evolution_enviou) == 1
+    assert twilio_enviou == []

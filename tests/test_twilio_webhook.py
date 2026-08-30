@@ -36,7 +36,7 @@ def test_replies_to_incoming_message(client):
             sent.append((number, text))
             return {"sid": "SM1"}
 
-    client.app.state.evolution = SpyWhatsApp()
+    client.app.state.whatsapp_twilio = SpyWhatsApp()
     response = post(client, {"From": "whatsapp:+5511987654321", "Body": "cadê meu pedido?"})
 
     assert response.status_code == 200
@@ -55,7 +55,7 @@ def test_never_500s(client):
         def send_text(self, number, text):
             raise RuntimeError("twilio fora do ar")
 
-    client.app.state.evolution = ExplodingWhatsApp()
+    client.app.state.whatsapp_twilio = ExplodingWhatsApp()
     response = post(client, {"From": "whatsapp:+5511987654321", "Body": "oi"})
     assert response.status_code == 200
     assert response.json() == {"status": "error-logged"}
@@ -70,7 +70,7 @@ def test_avisa_o_sistema_do_cliente_quando_chega_mensagem(client, monkeypatch):
 
     monkeypatch.setattr("app.routes.twilio_webhook.notify_system",
                         lambda settings, event, **kw: enviados.append(event))
-    client.app.state.evolution = SpyWhatsApp()
+    client.app.state.whatsapp_twilio = SpyWhatsApp()
     post(client, {"From": "whatsapp:+5511987654321", "Body": "cadê meu pedido?"})
 
     assert len(enviados) == 1
@@ -93,8 +93,28 @@ def test_falha_no_callback_nao_impede_resposta_ao_cliente(client, monkeypatch):
         raise RuntimeError("sistema do cliente fora do ar")
 
     monkeypatch.setattr("app.routes.twilio_webhook.notify_system", explode)
-    client.app.state.evolution = SpyWhatsApp()
+    client.app.state.whatsapp_twilio = SpyWhatsApp()
     resposta = post(client, {"From": "whatsapp:+5511987654321", "Body": "oi"})
 
     assert resposta.status_code == 200
     assert enviados, "o cliente precisa receber a resposta mesmo com o callback falhando"
+
+
+def test_responde_pelo_twilio_mesmo_com_evolution_ativa(client):
+    """A resposta volta pelo canal de entrada, não pelo provedor configurado."""
+    twilio_enviou, evolution_enviou = [], []
+
+    class Spy:
+        def __init__(self, destino):
+            self.destino = destino
+
+        def send_text(self, number, text):
+            self.destino.append((number, text))
+            return {"sid": "SM1"}
+
+    client.app.state.whatsapp_twilio = Spy(twilio_enviou)
+    client.app.state.whatsapp_evolution = Spy(evolution_enviou)
+    post(client, {"From": "whatsapp:+5511987654321", "Body": "oi"})
+
+    assert len(twilio_enviou) == 1
+    assert evolution_enviou == []

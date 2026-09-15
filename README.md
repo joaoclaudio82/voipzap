@@ -92,6 +92,9 @@ cru e responde 200 — ajuste o parser em `app/routes/webhook.py` com base no lo
 
 ## Fase 4 — integrar o seu sistema
 
+Para a integração pronta com o RHIA (backend, frontend, multitenancy e operação),
+consulte `rhia-backend/docs/INTEGRACAO-VOIPZAP.md` na raiz do workspace.
+
 Todos os endpoints abaixo exigem o cabeçalho `X-API-Key` com o valor de
 `API_KEY` do `.env`. A documentação interativa fica em `/docs`.
 

@@ -7,12 +7,12 @@ services:
       - evolution-redis
       - evolution-postgres
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8090:8080"
     volumes:
       - evolution_instances:/evolution/instances
     environment:
       - AUTHENTICATION_API_KEY=${EVOLUTION_APIKEY:-change-me}
-      - SERVER_URL=http://localhost:8080
+      - SERVER_URL=http://localhost:8090
       - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
       - DATABASE_CONNECTION_URI=postgresql://evolution:evolution@evolution-postgres:5432/evolution?schema=public
